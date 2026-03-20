@@ -2,7 +2,7 @@ name: auto-sign
 
 on:
   schedule:
-    - cron: "0 23 * * *" # 北京时间 7:00
+    - cron: '30 11 * * *' # 北京时间 7:00
   workflow_dispatch:
 
 jobs:
