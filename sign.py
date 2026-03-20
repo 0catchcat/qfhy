@@ -187,8 +187,8 @@ def main():
 
         title = "签到成功 ✅" if result.get("success") else "签到失败 ❌"
 
-               content = f"""
-时间: {datetime.now()}
+        content = f"""
+时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 任务ID:{task['id']}
 success: {result['success']}
 签到信息: {result['msg']}
