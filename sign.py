@@ -188,11 +188,14 @@ def main():
 
         title = "签到成功 ✅" if result.get("success") else "签到失败 ❌"
 
+        # 安全处理 task 为 None 的情况
+        task_id = task['id'] if task else "0000"
+
         content = f"""
 时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-任务ID:{task['id']}
-success: {result['success']}
-签到信息: {result['msg']}
+任务ID: {task_id}
+success: {result.get('success')}
+签到信息: {result.get('msg')}
 
 SESSION:
 {session}
