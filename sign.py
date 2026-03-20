@@ -98,6 +98,7 @@ def get_task_info(cookies):
 
     if not data.get("success"):
         print("接口返回失败:", data)
+        print("id:0000")
         return None
 
     tasks = data.get("result", {}).get("data", [])
