@@ -73,7 +73,7 @@ def get_session():
 def init_cookies(session):
 
     return {
-        "_sop_session_": "",
+        "_sop_session_": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIiLCJpYXQiOjE3NzM5MTg3MjksInVpZCI6IjIzMTA0MDcwNDA1IiwiaGlkIjowLCJhbGlhcyI6IiIsImNuIjoiIiwidGlja2V0IjoiMjVjZjA1ZjllNzhlZmQ1ZWY3NjJkNWI0NzNhZjg3MDAiLCJleHRyYSI6IntcImdyb3VwTmFtZVwiOlwiXCIsXCJpZGVudGl0eVR5cGVcIjoxLFwib3BlbklkXCI6XCJvWExfeDZ0MmdYOXFUUHRZYkZaRFN3WW5iLUlnXCIsXCJ5YkNsaWVudElkXCI6XCJHRzlBczF3aWRNMTkxMjAxXCJ9IiwiZXhwIjoxNzczOTU0NzI5fQ.XpnUj_mjXSRuBA96YL6_US70astdZLGnx2l2MhB-R5Q",
         "SESSION": session
     }
 
