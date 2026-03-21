@@ -25,10 +25,6 @@ jobs:
 
       - name: run sign script
         env:
-          OPEN_ID: ${{ secrets.OPEN_ID }}
-          LOCATION_POINT: ${{ secrets.LOCATION_POINT }}
-          LOCATION_ADDRESS: ${{ secrets.LOCATION_ADDRESS }}
-          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
-          PUSHPLUS_URL: ${{ secrets.PUSHPLUS_URL }}
+          USER_JSON: ${{ secrets.USER_JSON }}
         run: |
           python sign.py
