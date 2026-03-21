@@ -1,217 +1,214 @@
-import os
-import json
 import requests
+import json
+import os
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 
-# ================== 环境变量 ==================
+# ================== 读取 Secrets ==================
 
-OPEN_ID = os.getenv("OPEN_ID")
-LOCATION_POINT = os.getenv("LOCATION_POINT")
-LOCATION_ADDRESS = os.getenv("LOCATION_ADDRESS")
-PUSHPLUS_TOKEN = os.getenv("PUSHPLUS_TOKEN")
-PUSHPLUS_URL = os.getenv("PUSHPLUS_URL", "http://www.pushplus.plus/send")
+config = json.loads(os.environ["USER_JSON"])
 
-if not OPEN_ID:
-    raise ValueError("OPEN_ID 未设置")
+OPEN_ID = config["OPEN_ID"]
+LOCATION_INFO = config["LOCATION_INFO"]
+PUSHPLUS_TOKEN = config["PUSHPLUS_TOKEN"]
+PUSHPLUS_URL = config["PUSHPLUS_URL"]
 
-# 解析坐标
-POINT = [float(x) for x in LOCATION_POINT.split(",")]
+# ================== 配置区 ==================
 
-LOCATION_INFO = {
-    "isOuted": 0,
-    "isLated": 0,
-    "location": {
-        "point": POINT,
-        "address": LOCATION_ADDRESS
-    }
+QD_HEADERS = {
+    "authority": "qfhy.suse.edu.cn",
+    "accept": "application/json, text/plain, */*",
+    "accept-language": "zh-CN,zh;q=0.9",
+    "content-type": "application/json;charset=UTF-8",
+    "origin": "https://qfhy.suse.edu.cn",
+    "referer": f"https://qfhy.suse.edu.cn/xg/app/qddk/admin?open_id={OPEN_ID}",
+    "user-agent": "Mozilla/5.0"
 }
 
 QD_URL = "https://qfhy.suse.edu.cn/site/qddk/qdrw/api/checkSignLocationWithPhoto.rst"
 
-BASE_HEADERS = {
-    "accept": "application/json, text/plain, */*",
-    "content-type": "application/json;charset=UTF-8",
-    "origin": "https://qfhy.suse.edu.cn",
-    "referer": f"https://qfhy.suse.edu.cn/xg/app/qddk/admin?open_id={OPEN_ID}",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-}
 
+# ================== 工具函数 ==================
 
-# ================== Playwright 获取 SESSION ==================
-
-def get_session():
-    print("正在获取 SESSION ...")
+def get_session(open_id: str) -> str:
+    """使用 Playwright 获取 SESSION"""
 
     with sync_playwright() as p:
+
         browser = p.firefox.launch(headless=True)
         context = browser.new_context()
-
         page = context.new_page()
 
         page.goto(
-            f"https://qfhy.suse.edu.cn/xg/app/qddk/admin?open_id={OPEN_ID}",
-            wait_until="networkidle"
+            f"https://qfhy.suse.edu.cn/xg/app/qddk/admin?open_id={open_id}"
         )
 
-        page.wait_for_timeout(3000)
+        page.wait_for_timeout(5000)
 
         cookies = context.cookies()
 
+        session = ""
+
+        for cookie in cookies:
+            if cookie["name"] == "SESSION":
+                session = cookie["value"]
+
         browser.close()
 
-        for c in cookies:
-            if c["name"] == "SESSION":
-                print("SESSION 获取成功")
-                return c["value"]
+        print(f"获取到SESSION: {session}")
 
-        raise Exception("未获取到 SESSION")
+        return session
 
 
-# ================== 初始化 Cookies ==================
-
-def init_cookies(session):
+def init_cookies(session: str) -> dict:
+    """初始化 Cookie"""
 
     return {
-        "_sop_session_": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIiLCJpYXQiOjE3NzM5MTg3MjksInVpZCI6IjIzMTA0MDcwNDA1IiwiaGlkIjowLCJhbGlhcyI6IiIsImNuIjoiIiwidGlja2V0IjoiMjVjZjA1ZjllNzhlZmQ1ZWY3NjJkNWI0NzNhZjg3MDAiLCJleHRyYSI6IntcImdyb3VwTmFtZVwiOlwiXCIsXCJpZGVudGl0eVR5cGVcIjoxLFwib3BlbklkXCI6XCJvWExfeDZ0MmdYOXFUUHRZYkZaRFN3WW5iLUlnXCIsXCJ5YkNsaWVudElkXCI6XCJHRzlBczF3aWRNMTkxMjAxXCJ9IiwiZXhwIjoxNzczOTU0NzI5fQ.XpnUj_mjXSRuBA96YL6_US70astdZLGnx2l2MhB-R5Q",
         "SESSION": session
     }
 
 
-# ================== 获取任务 ==================
+def get_task_info(cookies: dict) -> dict:
+    """获取待签到任务"""
 
-def get_task_info(cookies):
+    headers = {
+        "authority": "qfhy.suse.edu.cn",
+        "accept": "application/json, text/plain, */*",
+        "accept-language": "zh-CN,zh;q=0.9",
+        "Content-Type": "undefined",
+        "appCode": "qddk",
+        "referer": f"https://qfhy.suse.edu.cn/xg/app/qddk/admin?open_id={OPEN_ID}",
+        "user-agent": QD_HEADERS["user-agent"]
+    }
 
-    print("获取签到任务...")
-
-    url = "https://qfhy.suse.edu.cn/site/qddk/qdrw/api/myList.rst"
-
-    headers = BASE_HEADERS.copy()
-    headers["Content-Type"] = "undefined"
-    headers["appCode"] = "qddk"
+    list_url = "https://qfhy.suse.edu.cn/site/qddk/qdrw/api/myList.rst"
 
     params = {"status": 1}
 
-    r = requests.get(url, headers=headers, cookies=cookies, params=params, timeout=15)
+    try:
 
-    data = r.json()
+        response = requests.get(
+            list_url,
+            headers=headers,
+            cookies=cookies,
+            params=params,
+            timeout=10
+        )
 
-    if not data.get("success"):
-        print("接口返回失败:", data)
+        data = response.json()
+
+        if not data.get("success") and "系统未找到你的身份信息" in data.get("errorMsg", ""):
+            return {"status": "Cookie失效"}
+
+        task_list = data.get("result", {}).get("data", [])
+
+        return task_list[0] if task_list else None
+
+    except Exception as e:
+
+        print(f"获取任务失败: {e}")
+
         return None
 
-    tasks = data.get("result", {}).get("data", [])
 
-    if not tasks:
-        print("没有待签到任务")
-        print("id:0000")
-        return None
+def sign_task(task_info: dict, cookies: dict, location_info: dict) -> dict:
+    """执行签到"""
 
-    task = tasks[0]
+    if not task_info:
 
-    print("任务ID:", task["id"])
+        return {"success": False, "msg": "没有找到待签到任务", "qd_id": "0000"}
 
-    return task
-
-
-# ================== 执行签到 ==================
-
-def sign(task, cookies):
-
-    if not task:
-        return {"success": False, "msg": "没有签到任务"}
+    qd_id = task_info.get("id")
 
     payload = {
-        "id": task["id"],
+        "id": qd_id,
         "qdzt": 1,
         "qdsj": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "isOuted": LOCATION_INFO["isOuted"],
-        "isLated": LOCATION_INFO["isLated"],
-        "qdddjtdz": LOCATION_INFO["location"]["address"],
-        "location": json.dumps(LOCATION_INFO["location"], ensure_ascii=False),
+        "isOuted": location_info["isOuted"],
+        "isLated": location_info["isLated"],
+        "qdddjtdz": location_info["location"]["address"],
+        "location": json.dumps(location_info["location"], ensure_ascii=False),
         "dkddPhoto": "",
         "fwwsy": "",
         "cdsy": "",
-        "txxx": "{}",
+        "txxx": "{}"
     }
 
-    r = requests.post(
-        QD_URL,
-        headers=BASE_HEADERS,
-        cookies=cookies,
-        json=payload,
-        timeout=15
-    )
-
     try:
-        data = r.json()
-    except:
-        data = {"raw": r.text}
 
-    return data
-
-
-# ================== PushPlus 推送 ==================
-
-def push(title, content):
-
-    if not PUSHPLUS_TOKEN:
-        return
-
-    try:
-        requests.post(
-            PUSHPLUS_URL,
-            data={
-                "token": PUSHPLUS_TOKEN,
-                "title": title,
-                "content": content
-            },
+        response = requests.post(
+            QD_URL,
+            json=payload,
+            headers=QD_HEADERS,
+            cookies=cookies,
             timeout=10
         )
+
+        data = response.json()
+
+        if not data.get("success") and "系统未找到你的身份信息" in data.get("errorMsg", ""):
+
+            return {"success": False, "msg": "Cookie失效", "qd_id": qd_id}
+
+        return {"success": True, "msg": response.text, "qd_id": qd_id}
+
     except Exception as e:
-        print("PushPlus推送失败:", e)
+
+        return {"success": False, "msg": str(e), "qd_id": qd_id}
 
 
-# ================== 主函数 ==================
+def push_message(token: str, title: str, content: str):
+    """PushPlus 推送"""
+
+    data = {
+        "token": token,
+        "title": title,
+        "content": content
+    }
+
+    try:
+        requests.post(PUSHPLUS_URL, data=data, timeout=5)
+    except Exception:
+        pass
+
+
+def format_content(result: dict, cookies: dict) -> str:
+    """保持原来的推送格式"""
+
+    qd_id_text = f"签到任务ID: {result.get('qd_id')}\n"
+
+    cookie_text = "当前Cookie:\n" + "\n".join(
+        f"{k}={v}" for k, v in cookies.items()
+    )
+
+    return (
+        f"签到时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        f"{qd_id_text}"
+        f"签到结果:\n{result['msg']}\n\n"
+        f"{cookie_text}"
+    )
+
+
+# ================== 主程序 ==================
 
 def main():
 
-    try:
+    session = get_session(OPEN_ID)
 
-        session = get_session()
+    cookies = init_cookies(session)
 
-        cookies = init_cookies(session)
+    task_info = get_task_info(cookies)
 
-        task = get_task_info(cookies)
+    result = sign_task(task_info, cookies, LOCATION_INFO)
 
-        result = sign(task, cookies)
+    title = "今日打卡结果 ✅" if result["success"] else "今日打卡失败 ❌"
 
-        title = "签到成功 ✅" if result.get("success") else "签到失败 ❌"
+    content = format_content(result, cookies)
 
-        # 安全处理 task 为 None 的情况
-        task_id = task['id'] if task else "0000"
+    push_message(PUSHPLUS_TOKEN, title, content)
 
-        content = f"""
-时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-任务ID: {task_id}
-success: {result.get('success')}
-签到信息: {result.get('msg')}
-
-SESSION:
-{session}
-"""
-
-        print(content)
-
-        push(title, content)
-
-    except Exception as e:
-
-        err = f"签到异常: {str(e)}"
-
-        print(err)
-
-        push("签到脚本异常 ❌", err)
+    print(title)
+    print(content)
 
 
 if __name__ == "__main__":
