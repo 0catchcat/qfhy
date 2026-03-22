@@ -141,7 +141,7 @@ def sign_task(task_info: dict, cookies: dict, location_info: dict) -> dict:
             timeout=10
         )
 
-        return {"success": True, "msg": response.text, "qd_id": qd_id}
+        return {"success": True, "msg": '签到成功', "qd_id": qd_id}
 
     except Exception as e:
 
@@ -175,7 +175,7 @@ def format_content(result: dict, cookies: dict) -> str:
     return (
         f"签到时间: {(datetime.utcnow() + timedelta(hours=8)).strftime('%Y-%m-%d %H:%M:%S')}\n"
         f"{qd_id_text}"
-        f"签到结果:\n{result['msg']}\n\n"
+        f"签到结果:{result['msg']}\n"
         f"{cookie_text}"
     )
 
