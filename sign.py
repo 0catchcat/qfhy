@@ -182,7 +182,7 @@ def format_content(result: dict, cookies: dict) -> str:
     )
 
     return (
-        f"签到时间: {(datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")}\n"
+        f"签到时间: {(datetime.utcnow() + timedelta(hours=8)).strftime('%Y-%m-%d %H:%M:%S')}\n"
         f"{qd_id_text}"
         f"签到结果:\n{result['msg']}\n\n"
         f"{cookie_text}"
