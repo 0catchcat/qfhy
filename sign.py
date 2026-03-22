@@ -97,9 +97,6 @@ def get_task_info(cookies: dict) -> dict:
 
         data = response.json()
 
-        if not data.get("success") and "系统未找到你的身份信息" in data.get("errorMsg", ""):
-            return {"status": "Cookie失效"}
-
         task_list = data.get("result", {}).get("data", [])
 
         return task_list[0] if task_list else None
@@ -143,12 +140,6 @@ def sign_task(task_info: dict, cookies: dict, location_info: dict) -> dict:
             cookies=cookies,
             timeout=10
         )
-
-        data = response.json()
-
-        if not data.get("success") and "系统未找到你的身份信息" in data.get("errorMsg", ""):
-
-            return {"success": False, "msg": "Cookie失效", "qd_id": qd_id}
 
         return {"success": True, "msg": response.text, "qd_id": qd_id}
 
@@ -201,7 +192,7 @@ def main():
 
     result = sign_task(task_info, cookies, LOCATION_INFO)
 
-    title = "今日打卡结果 ✅" if result["success"] else "今日打卡失败 ❌"
+    title = "今日打卡成功" if result["success"] else "今日打卡失败"
 
     content = format_content(result, cookies)
 
